@@ -1,0 +1,18 @@
+{
+    "_meta":
+    {
+        "sources": [
+            "./models"
+        ]
+    },
+    "Customer":
+    {
+        "dataSource": "db",
+        "public": true
+    },
+    "Order":
+    {
+        "dataSource": "db",
+        "public": true
+    }
+}

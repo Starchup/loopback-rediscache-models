@@ -1,0 +1,23 @@
+{
+    "name": "Customer",
+    "base": "PersistedModel",
+    "properties":
+    {
+        "name":
+        {
+            "type": "string"
+        }
+    },
+    "validations": [],
+    "relations":
+    {
+        "orders":
+        {
+            "type": "hasMany",
+            "model": "Order",
+            "foreignKey": "customerId"
+        }
+    },
+    "acls": [],
+    "methods": []
+}

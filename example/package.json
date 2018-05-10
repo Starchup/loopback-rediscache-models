@@ -1,0 +1,25 @@
+{
+    "name": "example",
+    "version": "1.0.0",
+    "description": "Example backend for loopback-cache-machine",
+    "repository": "git@github.com:Starchup/central.git",
+    "main": "example.js",
+    "dependencies":
+    {
+        "body-parser": "1.17.2",
+        "loopback": "2.38.0",
+        "loopback-boot": "2.23.0"
+    },
+    "scripts":
+    {
+        "test": "mocha test"
+    },
+    "devDependencies":
+    {
+        "jshint": "2.9.4",
+        "chai": "3.5.0",
+        "mocha": "3.4.1",
+        "request": "2.79.0",
+        "request-promise": "4.1.1"
+    }
+}
