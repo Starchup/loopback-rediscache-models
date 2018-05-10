@@ -1,9 +1,11 @@
-var app = require('../server.js');
 var expect = require('chai').expect;
+
+var Cache = require('../../cache.js');
+var app = require('../server.js');
 
 describe('Test cache emitting', function ()
 {
-    var cache = require('../../cache.js')();
+    var cache = Cache();
 
     var customerData = {
         id: 1,

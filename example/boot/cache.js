@@ -1,6 +1,8 @@
+var Cache = require('../../cache.js');
+
 module.exports = function startCache(app)
 {
-	var cache = require('../../cache.js')(
+	var cache = Cache(
 	{
 		app: app,
 		models: ['Customer']
