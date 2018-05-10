@@ -75,6 +75,18 @@ function Cache(options)
         });
     }
 
+    self.primeData = function (modelName, data)
+    {
+        return new Promise(function (resolve, reject)
+        {
+            self.cache.set(modelName, JSON.stringify(data), function (err, res)
+            {
+                if (err) reject(err);
+                else resolve(res);
+            });
+        });
+    }
+
     if (options)
     {
         if (options.unPrimed)
