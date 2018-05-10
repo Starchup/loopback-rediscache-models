@@ -58,7 +58,7 @@ function Cache(options)
         }).then(function (res)
         {
             if (res && res.length > 0) return JSON.parse(res);
-            if (!self.unPrimed) return res;
+            if (!self.unPrimed) return [];
 
             return self.unPrimed(modelName).then(function ()
             {
