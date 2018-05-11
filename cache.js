@@ -1,8 +1,10 @@
 "use strict";
 
-const redis = require("redis");
+const Redis = require("redis");
+const PubSub = require('google-pubsub-wrapper');
 
 const sep = '__';
+const group = 'cache';
 
 let cacheInstance;
 
@@ -27,17 +29,6 @@ function Cache(options)
 {
     const self = this;
 
-    self.cache = redis.createClient(
-    {
-        host: options.host,
-        port: options.port
-    });
-
-    self.cache.on("error", function (err)
-    {
-        if (err && err.message) console.error(err.message);
-    });
-
     self.findObj = function (modelName, key, value)
     {
         return self.findObjs(modelName, key, value).then(function (res)
@@ -46,8 +37,32 @@ function Cache(options)
         });
     }
 
-    self.findObjs = function (modelName, key, value)
+    self.findObjs = function (modelName, key, value, check)
     {
+        function callAgain(instance, mName, k, v)
+        {
+            return new Promise(function (resolve, reject)
+            {
+                setTimeout(function ()
+                {
+                    instance.findObjs(mName, k, v, true).then(resolve).catch(reject);
+                }, 500);
+            });
+        }
+
+        function askForPriming(instance, mName)
+        {
+            return instance.pubsub.emit([
+            {
+                modelName: mName
+            }],
+            {
+                topicName: group + sep + mName,
+                groupName: group,
+                env: instance.env
+            });
+        }
+
         return new Promise(function (resolve, reject)
         {
             self.cache.get(modelName, function (err, res)
@@ -58,11 +73,11 @@ function Cache(options)
         }).then(function (res)
         {
             if (res && res.length > 0) return JSON.parse(res);
-            if (!self.unPrimed) return [];
 
-            return self.unPrimed(modelName).then(function ()
+            if (check) return callAgain(self, modelName);
+            return askForPriming(self, modelName).then(function ()
             {
-                return self.findObjs(modelName, key, value);
+                return callAgain(self, modelName, key, value);
             });
         }).then(function (res)
         {
@@ -75,84 +90,104 @@ function Cache(options)
         });
     }
 
-    self.primeData = function (modelName, data)
+    // If no options are passed, just exit
+    if (!options) return self;
+
+
+    // If options are passed, run through setup
+    if (!options.env) throw new Error('options.env is required');
+    if (!self.env) self.env = options.env;
+
+    if (!options.pubsubProjectId) throw new Error('options.pubsubProjectId is required');
+    if (!self.pubsub) self.pubsub = PubSub.init(options.pubsubProjectId);
+
+    if (!self.cache)
     {
-        return new Promise(function (resolve, reject)
+        self.cache = Redis.createClient(
         {
-            self.cache.set(modelName, JSON.stringify(data), function (err, res)
-            {
-                if (err) reject(err);
-                else resolve(res);
-            });
+            host: options.host,
+            port: options.port
+        });
+
+        self.cache.on("error", function (err)
+        {
+            if (err && err.message) console.error(err.message);
         });
     }
 
-    if (options)
+    // If models are passed, we must watch and subscribe to them
+    if (options.models) options.models.forEach(function (modelName)
     {
-        if (options.unPrimed)
-        {
-            if (getType(options.unPrimed) !== 'Function') throw new Error('options.unPrimed must be a function');
-            self.unPrimed = options.unPrimed;
-        }
+        if (!options.app) throw new Error('options.app is required');
 
-        if (options.models) options.models.forEach(function (modelName)
-        {
-            const Model = options.app.models[modelName];
-            if (!modelName || !Model) return;
+        const Model = options.app.models[modelName];
+        if (!modelName || !Model) return;
 
-            Model.observe('after save', loopbackHook(self.cache, options.app));
-            Model.observe('before delete', loopbackHook(self.cache, options.app));
+        self.pubsub.subscribe(
+        {
+            topicName: group + sep + modelName,
+            groupName: group,
+            env: self.env,
+            callback: pubsubCallback(self.cache, options.app)
         });
-    }
+
+        Model.observe('after save', loopbackHook(self.cache, options.app));
+        Model.observe('before delete', loopbackHook(self.cache, options.app));
+    });
 
     return self;
 }
 
+//Returns a function that resets key value data in cache based on modelName passed
+function pubsubCallback(cache, app)
+{
+    return function (d)
+    {
+        if (!cache) throw new Error('pubsub callback missing cache');
+        if (!app) throw new Error('pubsub callback missing app');
+        if (!d) throw new Error('pubsub callback missing data');
 
-//Returns a function that watches model crection changes and publishes them
+        if (!d.modelName) throw new Error('pubsub callback missing d.modelName');
+        return findAndSetOrDel(cache, app, d.modelName);
+    }
+}
+
+//Returns a function that resets key value data in cache based on model data updated or created
 function loopbackHook(cache, app)
 {
     return function (ctx, next)
     {
-        const modelName = getModelName(ctx);
-        if (!modelName) return next();
-
-        app.models[modelName].find().then(models =>
-        {
-            return new Promise(function (resolve, reject)
-            {
-                if (!models || models.length < 1)
-                {
-                    cache.del(modelName, function (err, res)
-                    {
-                        if (err) reject(err);
-                        else resolve(res);
-                    });
-                }
-                else cache.set(modelName, JSON.stringify(models), function (err, res)
-                {
-                    if (err) reject(err);
-                    else resolve(res);
-                });
-            });
-        }).catch(function (err)
-        {
-            if (err && err.message) console.error(err.message);
-        }).then(function ()
+        if (!ctx.Model || !ctx.Model.definition || !ctx.Model.definition.name) next();
+        else findAndSetOrDel(cache, app, ctx.Model.definition.name).then(function ()
         {
             next();
         });
     }
 }
 
-/* General helpers */
-
-function getModelName(ctx)
+function findAndSetOrDel(cache, app, modelName)
 {
-    return ctx.Model && ctx.Model.definition && ctx.Model.definition.name;
-}
+    return app.models[modelName].find().then(data =>
+    {
+        return new Promise(function (resolve, reject)
+        {
+            if (!data || data.length < 1)
+            {
+                cache.del(modelName, function (err, res)
+                {
+                    if (err) reject(err);
+                    else resolve(res);
+                });
+            }
+            else cache.set(modelName, JSON.stringify(data), function (err, res)
+            {
+                if (err) reject(err);
+                else resolve(res);
+            });
+        });
 
-function getType(val)
-{
-    return Object.prototype.toString.call(val).slice(8, -1);
+    }).catch(function (err)
+    {
+        if (err && err.message) console.error(err.message);
+    });
 }
