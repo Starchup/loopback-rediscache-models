@@ -39,13 +39,13 @@ function Cache(options)
 
     self.findObjs = function (modelName, key, value, check)
     {
-        function callAgain(instance, mName, k, v)
+        function callAgain(instance, mName, k, v, c)
         {
             return new Promise(function (resolve, reject)
             {
                 setTimeout(function ()
                 {
-                    instance.findObjs(mName, k, v, true).then(resolve).catch(reject);
+                    instance.findObjs(mName, k, v, c + 1).then(resolve).catch(reject);
                 }, 500);
             });
         }
@@ -74,10 +74,13 @@ function Cache(options)
         {
             if (res && res.length > 0) return JSON.parse(res);
 
-            if (check) return callAgain(self, modelName);
+            // Limit checking to a max of 20 times (10 seconds)
+            if (check > 20) return [];
+            if (check > 0) return callAgain(self, modelName, key, value, check);
+
             return askForPriming(self, modelName).then(function ()
             {
-                return callAgain(self, modelName, key, value);
+                return callAgain(self, modelName, key, value, 0);
             });
         }).then(function (res)
         {
