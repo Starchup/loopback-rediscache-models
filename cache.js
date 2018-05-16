@@ -135,7 +135,7 @@ function Cache(options)
         });
 
         Model.observe('after save', loopbackHook(self.cache, options.app));
-        Model.observe('before delete', loopbackHook(self.cache, options.app));
+        Model.observe('after delete', loopbackHook(self.cache, options.app));
     });
 
     return self;
