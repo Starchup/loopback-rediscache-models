@@ -96,14 +96,6 @@ function Cache(options)
     // If no options are passed, just exit
     if (!options) return self;
 
-
-    // If options are passed, run through setup
-    if (!options.env) throw new Error('options.env is required');
-    if (!self.env) self.env = options.env;
-
-    if (!options.pubsubProjectId) throw new Error('options.pubsubProjectId is required');
-    if (!self.pubsub) self.pubsub = PubSub.init(options.pubsubProjectId);
-
     if (!self.cache)
     {
         self.cache = Redis.createClient(
@@ -119,24 +111,33 @@ function Cache(options)
     }
 
     // If models are passed, we must watch and subscribe to them
-    if (options.models) options.models.forEach(function (modelName)
+    if (options.models)
     {
-        if (!options.app) throw new Error('options.app is required');
+        // If options are passed, run through setup
+        if (!options.env) throw new Error('options.env is required');
+        if (!self.env) self.env = options.env;
 
-        const Model = options.app.models[modelName];
-        if (!modelName || !Model) return;
-
-        self.pubsub.subscribe(
+        if (!options.pubsubProjectId) throw new Error('options.pubsubProjectId is required');
+        if (!self.pubsub) self.pubsub = PubSub.init(options.pubsubProjectId);
+        options.models.forEach(function (modelName)
         {
-            topicName: group + sep + modelName,
-            groupName: group,
-            env: self.env,
-            callback: pubsubCallback(self.cache, options.app)
-        });
+            if (!options.app) throw new Error('options.app is required');
 
-        Model.observe('after save', loopbackHook(self.cache, options.app));
-        Model.observe('after delete', loopbackHook(self.cache, options.app));
-    });
+            const Model = options.app.models[modelName];
+            if (!modelName || !Model) return;
+
+            self.pubsub.subscribe(
+            {
+                topicName: group + sep + modelName,
+                groupName: group,
+                env: self.env,
+                callback: pubsubCallback(self.cache, options.app)
+            });
+
+            Model.observe('after save', loopbackHook(self.cache, options.app));
+            Model.observe('after delete', loopbackHook(self.cache, options.app));
+        });
+    }
 
     return self;
 }
