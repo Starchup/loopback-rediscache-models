@@ -96,11 +96,6 @@ function Cache(options)
     // If no options are passed, just exit
     if (!options) return self;
 
-
-    // If options are passed, run through setup
-    if (!options.env) throw new Error('options.env is required');
-    if (!self.env) self.env = options.env;
-
     if (!self.cache)
     {
         self.cache = Redis.createClient(
@@ -118,6 +113,10 @@ function Cache(options)
     // If models are passed, we must watch and subscribe to them
     if (options.models)
     {
+        // If options are passed, run through setup
+        if (!options.env) throw new Error('options.env is required');
+        if (!self.env) self.env = options.env;
+
         if (!options.pubsubProjectId) throw new Error('options.pubsubProjectId is required');
         if (!self.pubsub) self.pubsub = PubSub.init(options.pubsubProjectId);
 
