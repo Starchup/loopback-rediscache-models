@@ -6,6 +6,9 @@ const PubSub = require('google-pubsub-wrapper');
 const sep = '__';
 const group = 'cache';
 
+const maxRetries = 20;
+const waitBetweenPrimeAsks = 500;
+
 let cacheInstance;
 
 module.exports = function (options)
@@ -46,7 +49,7 @@ function Cache(options)
                 setTimeout(function ()
                 {
                     instance.findObjs(mName, k, v, c + 1).then(resolve).catch(reject);
-                }, 500);
+                }, waitBetweenPrimeAsks);
             });
         }
 
@@ -75,7 +78,7 @@ function Cache(options)
             if (res && res.length > 0) return JSON.parse(res);
 
             // Limit checking to a max of 20 times (10 seconds)
-            if (check > 20) return [];
+            if (check > maxRetries) return [];
             if (check > 0) return callAgain(self, modelName, key, value, check);
 
             return askForPriming(self, modelName).then(function ()
@@ -133,6 +136,8 @@ function Cache(options)
             env: self.env,
             callback: pubsubCallback(self.cache, options.app)
         });
+
+        self.findObjs(modelName, null, null, maxRetries + 1);
 
         Model.observe('after save', loopbackHook(self.cache, options.app));
         Model.observe('after delete', loopbackHook(self.cache, options.app));
