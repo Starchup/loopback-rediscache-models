@@ -122,7 +122,9 @@ function Cache(options)
     }
 
     // If models are passed, we must watch and subscribe to them
-    if (options.models) options.models.forEach(function (modelName)
+    var models = JSON.parse(JSON.stringify(options.models));
+    if (models && models.constructor == Object) models = Object.keys(models);
+    models.forEach(function (modelName)
     {
         if (!options.app) throw new Error('options.app is required');
 
@@ -137,7 +139,7 @@ function Cache(options)
             callback: pubsubCallback(self.cache, options.app)
         });
 
-        self.findObjs(modelName, null, null, maxRetries + 1);
+        if (options.models.constructor == Object && options.models[modelName] === 'prime') self.findObjs(modelName);
 
         Model.observe('after save', loopbackHook(self.cache, options.app));
         Model.observe('after delete', loopbackHook(self.cache, options.app));
