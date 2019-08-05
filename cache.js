@@ -6,8 +6,8 @@ const PubSub = require('google-pubsub-wrapper');
 const sep = '__';
 const group = 'cache';
 
-const maxRetries = 20;
-const waitBetweenPrimeAsks = 500;
+const maxRetries = 10;
+const waitBetweenPrimeAsks = 1000;
 
 let cacheInstance;
 
@@ -42,13 +42,14 @@ function Cache(options)
 
     self.findObjs = function (modelName, key, value, check)
     {
-        function callAgain(instance, mName, k, v, c)
+        function wait()
         {
+            console.debug('Cache waiting ' + (check ? 0 : 1) + ' for ' + modelName);
             return new Promise(function (resolve, reject)
             {
                 setTimeout(function ()
                 {
-                    instance.findObjs(mName, k, v, c + 1).then(resolve).catch(reject);
+                    resolve();
                 }, waitBetweenPrimeAsks);
             });
         }
@@ -77,13 +78,19 @@ function Cache(options)
         {
             if (res && res.length > 0) return JSON.parse(res);
 
-            // Limit checking to a max of 20 times (10 seconds)
-            if (check > maxRetries) return [];
-            if (check > 0) return callAgain(self, modelName, key, value, check);
+            // Limit checking to a max of 10 times (10 seconds)
+            if (check >= maxRetries) return [];
+            if (check > 0) return wait().then(function ()
+            {
+                instance.findObjs(modelName, key, value, check + 1);
+            });
 
             return askForPriming(self, modelName).then(function ()
             {
-                return callAgain(self, modelName, key, value, 0);
+                return wait().then(function ()
+                {
+                    return instance.findObjs(modelName, key, value, 1);
+                });
             });
         }).then(function (res)
         {
