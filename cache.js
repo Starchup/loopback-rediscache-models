@@ -42,6 +42,8 @@ function Cache(options)
 
     self.findObjs = function (modelName, key, value, check)
     {
+        var instance = self;
+
         function wait()
         {
             console.debug('Cache waiting ' + (check ? 0 : 1) + ' for ' + modelName);
@@ -69,7 +71,7 @@ function Cache(options)
 
         return new Promise(function (resolve, reject)
         {
-            self.cache.get(modelName, function (err, res)
+            instance.cache.get(modelName, function (err, res)
             {
                 if (err) reject(err);
                 else resolve(res);
@@ -85,7 +87,7 @@ function Cache(options)
                 instance.findObjs(modelName, key, value, check + 1);
             });
 
-            return askForPriming(self, modelName).then(function ()
+            return askForPriming(instance, modelName).then(function ()
             {
                 return wait().then(function ()
                 {
