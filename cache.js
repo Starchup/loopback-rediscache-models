@@ -56,19 +56,6 @@ function Cache(options)
             });
         }
 
-        function askForPriming(instance, mName)
-        {
-            return instance.pubsub.emit([
-            {
-                modelName: mName
-            }],
-            {
-                topicName: group + sep + mName,
-                groupName: group,
-                env: instance.env
-            });
-        }
-
         return new Promise(function (resolve, reject)
         {
             instance.cache.get(modelName, function (err, res)
@@ -87,7 +74,15 @@ function Cache(options)
                 instance.findObjs(modelName, key, value, check + 1);
             });
 
-            return askForPriming(instance, modelName).then(function ()
+            return instance.pubsub.emit([
+            {
+                modelName: modelName
+            }],
+            {
+                topicName: group + sep + modelName,
+                groupName: group,
+                env: instance.env
+            }).then(function ()
             {
                 return wait().then(function ()
                 {
