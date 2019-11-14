@@ -1,6 +1,6 @@
 {
     "name": "loopback-rediscache-models",
-    "version": "2.2.1",
+    "version": "2.2.2",
     "description": "Caching system for Loopback through redis",
     "main": "cache.js",
     "scripts":

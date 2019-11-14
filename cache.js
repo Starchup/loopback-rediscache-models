@@ -157,12 +157,11 @@ function pubsubCallback(cache, app, topic)
 {
     return function (d)
     {
-        if (!cache) throw new Error('pubsub callback for ' + topic + ' missing cache');
-        if (!app) throw new Error('pubsub callback for ' + topic + ' missing app');
-        if (!d) throw new Error('pubsub callback for ' + topic + ' missing data');
-
-        if (!d.modelName) throw new Error('pubsub callback missing d.modelName');
-        return findAndSetOrDel(cache, app, d.modelName);
+        if (!cache) console.error(new Error('pubsub callback for ' + topic + ' missing cache'));
+        else if (!app) console.error(new Error('pubsub callback for ' + topic + ' missing app'));
+        else if (!d) console.error(new Error('pubsub callback for ' + topic + ' missing data'));
+        else if (!d.modelName) console.error(new Error('pubsub callback missing d.modelName'));
+        else return findAndSetOrDel(cache, app, d.modelName);
     }
 }
 
