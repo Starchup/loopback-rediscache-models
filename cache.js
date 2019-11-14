@@ -133,12 +133,14 @@ function Cache(options)
         const Model = options.app.models[modelName];
         if (!modelName || !Model) return;
 
+        const topicName = group + sep + modelName;
+
         self.pubsub.subscribe(
         {
-            topicName: group + sep + modelName,
+            topicName: topicName,
             groupName: group,
             env: self.env,
-            callback: pubsubCallback(self.cache, options.app)
+            callback: pubsubCallback(self.cache, options.app, topicName)
         });
 
         self.findObjs(modelName);
@@ -151,13 +153,13 @@ function Cache(options)
 }
 
 //Returns a function that resets key value data in cache based on modelName passed
-function pubsubCallback(cache, app)
+function pubsubCallback(cache, app, topic)
 {
     return function (d)
     {
-        if (!cache) throw new Error('pubsub callback missing cache');
-        if (!app) throw new Error('pubsub callback missing app');
-        if (!d) throw new Error('pubsub callback missing data');
+        if (!cache) throw new Error('pubsub callback for ' + topic + ' missing cache');
+        if (!app) throw new Error('pubsub callback for ' + topic + ' missing app');
+        if (!d) throw new Error('pubsub callback for ' + topic + ' missing data');
 
         if (!d.modelName) throw new Error('pubsub callback missing d.modelName');
         return findAndSetOrDel(cache, app, d.modelName);
