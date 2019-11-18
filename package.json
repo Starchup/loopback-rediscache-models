@@ -1,6 +1,6 @@
 {
     "name": "loopback-rediscache-models",
-    "version": "2.3.0",
+    "version": "2.3.1",
     "description": "Caching system for Loopback through redis",
     "main": "cache.js",
     "scripts":
@@ -17,7 +17,7 @@
     "homepage": "https://github.com/Starchup/loopback-rediscache-models#readme",
     "dependencies":
     {
-        "google-pubsub-wrapper": "2.0.0",
+        "google-pubsub-wrapper": "2.0.x",
         "redis": "2.8.0"
     }
 }
