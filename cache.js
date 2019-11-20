@@ -46,7 +46,6 @@ function Cache(options)
 
         function wait()
         {
-            console.debug('Cache waiting ' + (check ? 0 : 1) + ' for ' + modelName);
             return new Promise(function (resolve, reject)
             {
                 setTimeout(function ()
@@ -58,11 +57,18 @@ function Cache(options)
 
         return new Promise(function (resolve, reject)
         {
-            instance.cache.get(modelName, function (err, res)
+            try
             {
-                if (err) reject(err);
-                else resolve(res);
-            });
+                instance.cache.get(modelName, function (err, res)
+                {
+                    if (err) reject(err);
+                    else resolve(res);
+                });
+            }
+            catch (err)
+            {
+                reject(err);
+            }
         }).then(function (res)
         {
             if (res && res.length > 0) return JSON.parse(res);
@@ -121,7 +127,7 @@ function Cache(options)
 
         self.cache.on("error", function (err)
         {
-            if (err && err.message) console.error(err.message);
+            if (err && err.message) console.error('loopback-rediscache-models: cache on error ' + err.message);
         });
     }
 
@@ -184,23 +190,27 @@ function findAndSetOrDel(cache, app, modelName)
     {
         return new Promise(function (resolve, reject)
         {
-            if (!data || data.length < 1)
+            try
             {
-                cache.del(modelName, function (err, res)
+                if (!data || data.length < 1)
+                {
+                    cache.del(modelName, function (err, res)
+                    {
+                        if (err) reject(err);
+                        else resolve(res);
+                    });
+                }
+                else cache.set(modelName, JSON.stringify(data), function (err, res)
                 {
                     if (err) reject(err);
                     else resolve(res);
                 });
             }
-            else cache.set(modelName, JSON.stringify(data), function (err, res)
+            catch (err)
             {
-                if (err) reject(err);
-                else resolve(res);
-            });
+                reject(err);
+            }
         });
 
-    }).catch(function (err)
-    {
-        if (err && err.message) console.error(err.message);
     });
 }
