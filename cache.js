@@ -192,15 +192,7 @@ function findAndSetOrDel(cache, app, modelName)
         {
             try
             {
-                if (!data || data.length < 1)
-                {
-                    cache.del(modelName, function (err, res)
-                    {
-                        if (err) reject(err);
-                        else resolve(res);
-                    });
-                }
-                else cache.set(modelName, JSON.stringify(data), function (err, res)
+                cache.set(modelName, JSON.stringify(data), function (err, res)
                 {
                     if (err) reject(err);
                     else resolve(res);
