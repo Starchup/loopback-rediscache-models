@@ -80,10 +80,10 @@ function Cache(options)
                 instance.findObjs(modelName, key, value, check + 1);
             });
 
-            return instance.pubsub.emit([
+            return instance.pubsub.emit(
             {
                 modelName: modelName
-            }],
+            },
             {
                 topicName: group + sep + modelName,
                 groupName: group,
