@@ -204,7 +204,7 @@ function findAndSetOrDel(cache, app, modelName, retry)
     });
 }
 
-function wait(waitBetweenPrimeAsks)
+function wait(delay)
 {
     return new Promise(function (resolve, reject)
     {
