@@ -8,6 +8,7 @@ const group = 'cache';
 
 const maxRetries = 10;
 const waitBetweenPrimeAsks = 1000;
+const waitAfterCacheFailure = 1000;
 
 let cacheInstance;
 
@@ -44,17 +45,6 @@ function Cache(options)
     {
         var instance = self;
 
-        function wait()
-        {
-            return new Promise(function (resolve, reject)
-            {
-                setTimeout(function ()
-                {
-                    resolve();
-                }, waitBetweenPrimeAsks);
-            });
-        }
-
         return new Promise(function (resolve, reject)
         {
             try
@@ -75,7 +65,7 @@ function Cache(options)
 
             // Limit checking to a max of 10 times (10 seconds)
             if (check >= maxRetries) return [];
-            if (check > 0) return wait().then(function ()
+            if (check > 0) return wait(waitBetweenPrimeAsks).then(function ()
             {
                 instance.findObjs(modelName, key, value, check + 1);
             });
@@ -90,7 +80,7 @@ function Cache(options)
                 env: instance.env
             }).then(function ()
             {
-                return wait().then(function ()
+                return wait(waitBetweenPrimeAsks).then(function ()
                 {
                     return instance.findObjs(modelName, key, value, 1);
                 });
@@ -184,7 +174,7 @@ function loopbackHook(cache, app)
     }
 }
 
-function findAndSetOrDel(cache, app, modelName)
+function findAndSetOrDel(cache, app, modelName, retry)
 {
     return app.models[modelName].find().then(data =>
     {
@@ -203,6 +193,24 @@ function findAndSetOrDel(cache, app, modelName)
                 reject(err);
             }
         });
+    }).catch(function (err)
+    {
+        if (retry) throw err;
 
+        else return wait(waitAfterCacheFailure).then(function ()
+        {
+            return findAndSetOrDel(cache, app, modelName, true);
+        });
+    });
+}
+
+function wait(waitBetweenPrimeAsks)
+{
+    return new Promise(function (resolve, reject)
+    {
+        setTimeout(function ()
+        {
+            resolve();
+        }, delay);
     });
 }
