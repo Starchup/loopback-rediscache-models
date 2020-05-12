@@ -6,20 +6,20 @@
     "main": "example.js",
     "dependencies":
     {
-        "body-parser": "1.17.2",
+        "body-parser": "1.19.0",
         "loopback": "2.38.0",
         "loopback-boot": "2.23.0"
     },
     "scripts":
     {
-        "test": "mocha test"
+        "test": "mocha test --exit"
     },
     "devDependencies":
     {
-        "jshint": "2.9.4",
-        "chai": "3.5.0",
-        "mocha": "3.4.1",
-        "request": "2.79.0",
-        "request-promise": "4.1.1"
+        "jshint": "2.11.0",
+        "chai": "4.2.0",
+        "mocha": "7.1.2",
+        "request": "2.88.2",
+        "request-promise": "4.2.5"
     }
 }
