@@ -121,6 +121,12 @@ function Cache(options)
         });
     }
 
+    if (options.filters && !self.filters)
+    {
+        if (getType(options.filters) !== 'Array') throw new Error('options.filters must be an array of functions');
+        self.filters = options.filters;
+    }
+
     // If models are passed, we must watch and subscribe to them
     if (options.models) options.models.forEach(function (modelName)
     {
@@ -157,7 +163,7 @@ function pubsubCallback(cache, app, topic)
         else if (!app) console.error(new Error('pubsub callback for ' + topic + ' missing app'));
         else if (!d) console.error(new Error('pubsub callback for ' + topic + ' missing data'));
         else if (!d.modelName) console.error(new Error('pubsub callback missing d.modelName'));
-        else return findAndSetOrDel(cache, app, d.modelName);
+        else return findAndSetOrDel(cache, app, d.modelName, 'create');
     }
 }
 
@@ -167,16 +173,21 @@ function loopbackHook(cache, app)
     return function (ctx, next)
     {
         if (!ctx.Model || !ctx.Model.definition || !ctx.Model.definition.name) next();
-        else findAndSetOrDel(cache, app, ctx.Model.definition.name).then(function ()
+        else
         {
-            next();
-        });
+            var modelName = ctx.Model.definition.name;
+            var methodName = ctx.isNewInstance ? 'create' : 'update';
+            findAndSetOrDel(cache, app, modelName, methodName, ctx.instance).then(function ()
+            {
+                next();
+            });
+        }
     }
 }
 
-function findAndSetOrDel(cache, app, modelName, retry)
+function findAndSetOrDel(cache, app, modelName, methodName, instance, retry)
 {
-    return app.models[modelName].find().then(data =>
+    if (shouldCache(cache, modelName, methodName, instance)) return app.models[modelName].find().then(data =>
     {
         return new Promise(function (resolve, reject)
         {
@@ -199,7 +210,7 @@ function findAndSetOrDel(cache, app, modelName, retry)
 
         else return wait(waitAfterCacheFailure).then(function ()
         {
-            return findAndSetOrDel(cache, app, modelName, true);
+            return findAndSetOrDel(cache, app, modelName, methodName, instance, true);
         });
     });
 }
@@ -212,5 +223,17 @@ function wait(delay)
         {
             resolve();
         }, delay);
+    });
+}
+
+function shouldCache(self, modelName, methodName, instance)
+{
+    if (!modelName || !methodName || !instance) return true;
+    if (!self.filters || !self.filters.length) return true;
+    return self.filters.every(fn =>
+    {
+        //Silently skip improper filters
+        if (getType(fn) !== 'Function') return true;
+        return fn(modelName, methodName, instance);
     });
 }
