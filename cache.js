@@ -237,3 +237,8 @@ function shouldCache(self, modelName, methodName, instance)
         return fn(modelName, methodName, instance);
     });
 }
+
+function getType(val)
+{
+    return Object.prototype.toString.call(val).slice(8, -1);
+}
