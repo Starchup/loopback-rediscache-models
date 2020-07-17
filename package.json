@@ -17,7 +17,7 @@
     "homepage": "https://github.com/Starchup/loopback-rediscache-models#readme",
     "dependencies":
     {
-        "google-pubsub-wrapper": "git+https://github.com/Starchup/google-pubsub-wrapper.git#logs",
+        "google-pubsub-wrapper": "2.3.x",
         "redis": "3.0.2"
     }
 }
