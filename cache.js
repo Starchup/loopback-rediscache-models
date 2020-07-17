@@ -230,8 +230,15 @@ function shouldCache(self, modelName, methodName, instance)
 {
     if (!modelName || !methodName || !instance) return true;
     if (!self.filters || !self.filters.length) return true;
+
+    if (modelName === 'Driver') console.log(self.filters);
+
     return self.filters.every(fn =>
     {
+
+        if (modelName === 'Driver') console.log(getType(fn));
+        if (modelName === 'Driver') console.log(fn(modelName, methodName, instance));
+
         //Silently skip improper filters
         if (getType(fn) !== 'Function') return true;
         return fn(modelName, methodName, instance);
