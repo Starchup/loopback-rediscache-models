@@ -10,6 +10,8 @@ const maxRetries = 10;
 const waitBetweenPrimeAsks = 1000;
 const waitAfterCacheFailure = 1000;
 
+const label = "[RedisCache]";
+
 let cacheInstance;
 
 module.exports = function (options)
@@ -187,8 +189,11 @@ function loopbackHook(cache, app)
 
 function findAndSetOrDel(cache, app, modelName, methodName, instance, retry)
 {
-    if (shouldCache(cache, modelName, methodName, instance)) return app.models[modelName].find().then(data =>
+    const retrieveData = app.models[modelName].findAllUnfiltered || app.models[modelName].find;
+
+    if (shouldCache(cache, modelName, methodName, instance)) return retrieveData().then(data =>
     {
+        console.log(`${label} ${modelName}: ${data.length} records found`);
         return new Promise(function (resolve, reject)
         {
             try
@@ -206,6 +211,8 @@ function findAndSetOrDel(cache, app, modelName, methodName, instance, retry)
         });
     }).catch(function (err)
     {
+        console.log(`${label} ${modelName}: ERROR: ${err.message}`);
+
         if (retry) throw err;
 
         else return wait(waitAfterCacheFailure).then(function ()
