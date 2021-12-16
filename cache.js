@@ -33,6 +33,7 @@ module.exports = function (options)
  */
 function Cache(options)
 {
+    console.log(`${label} Init`);
     const self = this;
 
     self.findObj = function (modelName, key, value)
@@ -99,7 +100,10 @@ function Cache(options)
     }
 
     // If no options are passed, just exit
-    if (!options) return self;
+    if (!options) {
+        console.log(`${label} Empty options, skipping setup`);
+        return self;
+    }
 
 
     // If options are passed, run through setup
@@ -130,28 +134,33 @@ function Cache(options)
     }
 
     // If models are passed, we must watch and subscribe to them
-    if (options.models) options.models.forEach(function (modelName)
-    {
-        if (!options.app) throw new Error('options.app is required');
-
-        const Model = options.app.models[modelName];
-        if (!modelName || !Model) return;
-
-        const topicName = group + sep + modelName;
-
-        self.pubsub.subscribe(
+    if (options.models) {
+        console.log(`${label} Watching ${options.models.length} models: ${options.models.join(", ")}`);
+        options.models.forEach(function (modelName)
         {
-            topicName: topicName,
-            groupName: group,
-            env: self.env,
-            callback: pubsubCallback(self.cache, options.app, topicName)
+            if (!options.app) throw new Error('options.app is required');
+    
+            const Model = options.app.models[modelName];
+            if (!modelName || !Model) return;
+    
+            const topicName = group + sep + modelName;
+    
+            self.pubsub.subscribe(
+            {
+                topicName: topicName,
+                groupName: group,
+                env: self.env,
+                callback: pubsubCallback(self.cache, options.app, topicName)
+            });
+    
+            self.findObjs(modelName);
+    
+            Model.observe('after save', loopbackHook(self.cache, options.app));
+            Model.observe('after delete', loopbackHook(self.cache, options.app));
         });
-
-        self.findObjs(modelName);
-
-        Model.observe('after save', loopbackHook(self.cache, options.app));
-        Model.observe('after delete', loopbackHook(self.cache, options.app));
-    });
+    } else {
+        console.log(`${label} No model list provided, not watching changes`);
+    }
 
     return self;
 }
