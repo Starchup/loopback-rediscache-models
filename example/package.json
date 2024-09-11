@@ -6,7 +6,7 @@
     "main": "example.js",
     "dependencies":
     {
-        "body-parser": "1.19.0",
+        "body-parser": "1.20.3",
         "loopback": "2.38.0",
         "loopback-boot": "2.23.0"
     },
